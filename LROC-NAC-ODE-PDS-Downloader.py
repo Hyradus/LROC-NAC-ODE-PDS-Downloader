@@ -19,20 +19,17 @@ Before start:
 import os
 
 import pandas as pd
-from argparse import ArgumentParser
-
 from tqdm import tqdm
-from utils.GenUtils import question, make_folder, chunk_creator, parallel_funcs, readGPKG
+from utils.GenUtils import chunk_creator, parallel_funcs, readGPKG
 from utils.FileUtils import getFileUrl, getFile
 import psutil
 from argparse import ArgumentParser
 from tkinter import Tk,filedialog
-global dst_folder
-global gpkgDF
 
-def main():  
-    from tqdm import tqdm
-    import psutil
+global dst_folder
+
+
+def main(gpkgDF):  
     JOBS=psutil.cpu_count(logical=False)
     
     download_urls = gpkgDF['FilesURL'].tolist()
@@ -53,7 +50,7 @@ def main():
         
             for i in range(len(chunks)):
                 files = chunks[i]
-                results = parallel_funcs(files, JOBS, getFileUrl, '.IMG')
+                results = parallel_funcs(files, JOBS, getFileUrl, ext)
                 pbar.update(JOBS)
                 [file_urls.append(url) for url in results]
             csv_df = pd.DataFrame(file_urls)
@@ -103,15 +100,17 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('--path', help='download folder path')
     parser.add_argument('--shp', help='shapefile or geopackage with orbits')
+    parser.add_argument('--ext', help='extension of desired files')
     
     args = parser.parse_args()
     path = args.path
+    ext = args.ext
     gpkg_file = args.shp
     
     if  path is None:
         root = Tk()
         root.withdraw()
-        dst_folder = filedialog.askdirectory(parent=root,initialdir=os.getcwd(),title="Please select the folder with the files to be cropped as square")
+        dst_folder = filedialog.askdirectory(parent=root,initialdir=os.getcwd(),title="Please select the folder Download folder")
         print('Working folder:', dst_folder)
     
     if  gpkg_file is None:
@@ -120,12 +119,16 @@ if __name__ == "__main__":
         gpkg_file = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("Esri Shapefile","*.shp"),("all files","*.*")))
         print('Working folder:', gpkg_file)
 
-
-    # dst_folder = '/media/hyradus/T-DATS1/Working/TEST-LROC-DOWN'
+    if ext is None:
+        print('Please enter TIFF or tiff, PNG or png or JPG or jpg, JP2. Leave empty for JP2')    
+        ixt = input('Enter input image format: ')
+        if ixt == '':
+            ixt = '.JP2'
+        
     gpkgDF = readGPKG(gpkg_file)
-    # gpkgDF = readGPKG('/media/hyradus/NAS/OrbitalData/Moon/LROC/LROC-Working/LROC-EDRNAC-pitatlas.shp')
     
-    main()
+    
+    main(gpkgDF)
    
 
 
